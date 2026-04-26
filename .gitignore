@@ -1,0 +1,30 @@
+# Build artifacts
+build/
+bin/
+*.o
+*.a
+*.so
+*.dylib
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test files
+test_*
+*.test
+
+# Runtime state
+/var/run/cruntime/
+/var/lib/cruntime/
+
+# Logs
+*.log
+
+# Core dumps
+core
+core.*
