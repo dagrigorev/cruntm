@@ -1,7 +1,6 @@
 #ifndef CRUNTIME_H
 #define CRUNTIME_H
 
-#define _GNU_SOURCE
 #include <stdint.h>
 #include <stdbool.h>
 #include <sys/types.h>

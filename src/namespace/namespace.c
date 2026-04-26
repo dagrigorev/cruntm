@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 #include <sched.h>
 #include <unistd.h>
 #include <sys/wait.h>
@@ -10,6 +9,7 @@
 #include <string.h>
 #include <errno.h>
 #include <limits.h>
+#include <sys/syscall.h>
 #include "../include/cruntime.h"
 
 /* Get namespace flags from config */

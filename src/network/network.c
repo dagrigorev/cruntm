@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,6 +10,7 @@
 #include <arpa/inet.h>
 #include <net/route.h>
 #include <fcntl.h>
+#include <time.h>
 #include "../include/cruntime.h"
 
 /* Execute network command */

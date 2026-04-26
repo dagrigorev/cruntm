@@ -110,10 +110,26 @@ sudo apt-get install build-essential iproute2 iptables util-linux
 
 ## Building
 
-### Quick Build
+### Linux
+
 ```bash
 make
 ```
+
+### Windows (WSL2)
+
+```powershell
+# Quick build
+.\windows\build.ps1
+
+# Build and install
+.\windows\build.ps1 -Install
+
+# With CMake
+.\windows\build-cmake.ps1 -Install
+```
+
+See [windows/README.md](windows/README.md) for detailed Windows setup.
 
 ### Build with Debug Symbols
 ```bash

@@ -1,9 +1,10 @@
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <sys/mount.h>
+#include <sys/wait.h>
 #include "../include/cruntime.h"
 
 /* External utility functions */

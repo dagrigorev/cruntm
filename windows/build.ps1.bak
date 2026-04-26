@@ -1,0 +1,219 @@
+# CRuntime Windows Build Script (WSL2)
+# Builds and runs the container runtime in WSL2
+
+param(
+    [switch]$Install,
+    [switch]$Clean,
+    [switch]$Test,
+    [switch]$Help
+)
+
+$ErrorActionPreference = "Stop"
+
+function Write-ColorOutput($ForegroundColor) {
+    $fc = $host.UI.RawUI.ForegroundColor
+    $host.UI.RawUI.ForegroundColor = $ForegroundColor
+    if ($args) {
+        Write-Output $args
+    }
+    $host.UI.RawUI.ForegroundColor = $fc
+}
+
+function Check-WSL2 {
+    Write-ColorOutput Yellow "Checking WSL2..."
+    
+    if (-not (Get-Command wsl -ErrorAction SilentlyContinue)) {
+        Write-ColorOutput Red "ERROR: WSL is not installed"
+        Write-Host "Install WSL2 with: wsl --install"
+        exit 1
+    }
+    
+    $wslVersion = wsl --status 2>&1 | Select-String "Default Version" | ForEach-Object { $_.ToString().Split(":")[1].Trim() }
+    
+    if ($wslVersion -ne "2") {
+        Write-ColorOutput Yellow "WARNING: Default WSL version is not 2"
+        Write-Host "Set default to WSL2: wsl --set-default-version 2"
+    }
+    
+    Write-ColorOutput Green "[OK] WSL2 is available"
+}
+
+function Check-Distribution {
+    Write-ColorOutput Yellow "Checking WSL distribution..."
+    
+    $distros = wsl --list --quiet
+    
+    if ($distros.Count -eq 0) {
+        Write-ColorOutput Red "ERROR: No WSL distributions installed"
+        Write-Host "Install Ubuntu: wsl --install -d Ubuntu"
+        exit 1
+    }
+    
+    $defaultDistro = wsl --list --quiet | Select-Object -First 1
+    Write-ColorOutput Green "✓ Using distribution: $defaultDistro"
+}
+
+function Install-Dependencies {
+    Write-ColorOutput Yellow "Installing build dependencies in WSL..."
+    
+    wsl bash -c @"
+        sudo apt-get update -qq
+        sudo apt-get install -y build-essential iproute2 iptables util-linux wget
+        echo 'Dependencies installed successfully'
+"@
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-ColorOutput Green "✓ Dependencies installed"
+    } else {
+        Write-ColorOutput Red "✗ Failed to install dependencies"
+        exit 1
+    }
+}
+
+function Build-CRuntime {
+    Write-ColorOutput Yellow "Building CRuntime in WSL..."
+    
+    # Get Windows path and convert to WSL path
+    $windowsPath = (Get-Location).Path
+    $wslPath = wsl wslpath -a "'$windowsPath'"
+    
+    wsl bash -c @"
+        cd '$wslPath'
+        make clean
+        make
+        echo 'Build completed successfully'
+"@
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-ColorOutput Green "✓ Build successful"
+    } else {
+        Write-ColorOutput Red "✗ Build failed"
+        exit 1
+    }
+}
+
+function Install-CRuntime {
+    Write-ColorOutput Yellow "Installing CRuntime in WSL..."
+    
+    $windowsPath = (Get-Location).Path
+    $wslPath = wsl wslpath -a "'$windowsPath'"
+    
+    wsl bash -c @"
+        cd '$wslPath'
+        sudo make install
+        echo 'Installation completed successfully'
+"@
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-ColorOutput Green "✓ Installed to /usr/local/bin/cruntime"
+    } else {
+        Write-ColorOutput Red "✗ Installation failed"
+        exit 1
+    }
+}
+
+function Test-CRuntime {
+    Write-ColorOutput Yellow "Running test container..."
+    
+    $windowsPath = (Get-Location).Path
+    $wslPath = wsl wslpath -a "'$windowsPath'"
+    
+    wsl bash -c @"
+        cd '$wslPath'
+        sudo ./setup.sh
+"@
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-ColorOutput Green "✓ Test successful"
+    } else {
+        Write-ColorOutput Red "✗ Test failed"
+    }
+}
+
+function Clean-Build {
+    Write-ColorOutput Yellow "Cleaning build artifacts..."
+    
+    $windowsPath = (Get-Location).Path
+    $wslPath = wsl wslpath -a "'$windowsPath'"
+    
+    wsl bash -c @"
+        cd '$wslPath'
+        make clean
+"@
+    
+    Write-ColorOutput Green "✓ Clean complete"
+}
+
+function Show-Help {
+    Write-Host @"
+CRuntime Windows Build Script
+
+Usage: .\build.ps1 [options]
+
+Options:
+    -Install    Build and install CRuntime
+    -Clean      Clean build artifacts
+    -Test       Run test container
+    -Help       Show this help
+
+Examples:
+    .\build.ps1                 # Build only
+    .\build.ps1 -Install        # Build and install
+    .\build.ps1 -Test           # Build and test
+    .\build.ps1 -Clean          # Clean build
+
+After installation, run containers with:
+    wsl sudo cruntime run alpine /bin/sh
+
+"@
+}
+
+# Main execution
+Write-Host ""
+Write-ColorOutput Cyan "======================================"
+Write-ColorOutput Cyan " CRuntime Windows Build (WSL2)"
+Write-ColorOutput Cyan "======================================"
+Write-Host ""
+
+if ($Help) {
+    Show-Help
+    exit 0
+}
+
+# Check prerequisites
+Check-WSL2
+Check-Distribution
+
+if ($Clean) {
+    Clean-Build
+    exit 0
+}
+
+# Install dependencies
+Install-Dependencies
+
+# Build
+Build-CRuntime
+
+# Install if requested
+if ($Install) {
+    Install-CRuntime
+}
+
+# Test if requested
+if ($Test) {
+    Test-CRuntime
+}
+
+Write-Host ""
+Write-ColorOutput Green "======================================"
+Write-ColorOutput Green " Build Complete!"
+Write-ColorOutput Green "======================================"
+Write-Host ""
+Write-Host "Run containers with:"
+Write-Host "  wsl sudo cruntime run alpine /bin/sh"
+Write-Host ""
+Write-Host "Or enter WSL:"
+Write-Host "  wsl"
+Write-Host "  sudo cruntime run alpine /bin/sh"
+Write-Host ""
